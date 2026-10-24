@@ -4,7 +4,9 @@
 use std::collections::BTreeMap;
 
 use frostsig::signing::{aggregate, commit, sign};
-use frostsig::{Ciphersuite, Identifier, KeyPackage, PublicKeyPackage, Signature, SignatureShare, SigningPackage};
+use frostsig::{
+    Ciphersuite, Identifier, KeyPackage, PublicKeyPackage, Signature, SignatureShare, SigningPackage,
+};
 use rand_chacha::ChaCha20Rng;
 
 /// Verify a key set from a trusted dealer.

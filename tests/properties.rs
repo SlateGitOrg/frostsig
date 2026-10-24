@@ -21,7 +21,9 @@ fn group(max_n: u16) -> impl Strategy<Value = (u16, u16, Vec<u16>, u64)> {
     (2..=max_n)
         .prop_flat_map(|n| (2..=n, Just(n)))
         .prop_flat_map(|(t, n)| (Just(t), Just(n), usize::from(t)..=usize::from(n)))
-        .prop_flat_map(|(t, n, k)| (Just(t), Just(n), subsequence((1..=n).collect::<Vec<u16>>(), k), any::<u64>()))
+        .prop_flat_map(|(t, n, k)| {
+            (Just(t), Just(n), subsequence((1..=n).collect::<Vec<u16>>(), k), any::<u64>())
+        })
 }
 
 fn ids(v: &[u16]) -> Vec<Identifier> {

@@ -78,6 +78,10 @@ struct GroupArgs {
     /// Per-reply timeout in milliseconds.
     #[arg(long, default_value_t = 2000)]
     timeout_ms: u64,
+    /// Inject a fault, `ID=KIND`; KIND is bad-share, bad-proof, silent,
+    /// equivocate or bad-dkg-share:VICTIM.
+    #[arg(long = "fault")]
+    faults: Vec<String>,
 }
 
 #[derive(Args, Debug)]
@@ -90,9 +94,6 @@ struct SimulateArgs {
     /// Message to sign; repeat for several sessions.
     #[arg(short, long = "message")]
     messages: Vec<String>,
-    /// Inject a fault, `ID=KIND` with KIND one of bad-share, bad-proof, silent, bad-dkg-share:VICTIM.
-    #[arg(long = "fault")]
-    faults: Vec<String>,
     /// Print the report as JSON.
     #[arg(long)]
     json: bool,
@@ -228,6 +229,7 @@ fn base_config(g: &GroupArgs) -> CliResult<SimConfig> {
     c.keygen = g.keygen.parse::<KeygenMode>().map_err(err)?;
     c.seed = g.seed;
     c.timeout = Duration::from_millis(g.timeout_ms);
+    c.faults = parse_faults(&g.faults)?;
     Ok(c)
 }
 
@@ -256,7 +258,6 @@ fn print_report(report: &SimReport, json: bool) -> CliResult<()> {
 fn simulate<C: Ciphersuite>(a: &SimulateArgs) -> CliResult<ExitCode> {
     let mut config = base_config(&a.group)?;
     config.signers = a.signers.clone();
-    config.faults = parse_faults(&a.faults)?;
     config.messages = if a.messages.is_empty() {
         vec![b"hello from frostsig".to_vec()]
     } else {

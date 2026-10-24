@@ -74,6 +74,19 @@ pub enum Fault {
     Equivocate,
 }
 
+impl std::fmt::Display for Fault {
+    /// The same spelling [`FromStr`] accepts.
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Fault::BadSignatureShare => f.write_str("bad-share"),
+            Fault::BadDkgShare { victim } => write!(f, "bad-dkg-share:{victim}"),
+            Fault::BadProof => f.write_str("bad-proof"),
+            Fault::Silent => f.write_str("silent"),
+            Fault::Equivocate => f.write_str("equivocate"),
+        }
+    }
+}
+
 impl FromStr for Fault {
     type Err = Error;
 
@@ -287,7 +300,7 @@ impl SimReport {
         line(&mut out, format!("threshold  : {}-of-{}", self.min_signers, self.max_signers));
         line(&mut out, format!("keygen     : {}", self.keygen));
         if !self.faults.is_empty() {
-            let f: Vec<String> = self.faults.iter().map(|(i, f)| format!("P{i}={f:?}")).collect();
+            let f: Vec<String> = self.faults.iter().map(|(i, f)| format!("P{i}={f}")).collect();
             line(&mut out, format!("faults     : {}", f.join(", ")));
         }
         match &self.keygen_outcome {
@@ -396,6 +409,15 @@ mod tests {
         assert!("bad-dkg-share:x".parse::<Fault>().is_err());
         assert!("nope".parse::<Fault>().is_err());
         assert!("nope:1".parse::<Fault>().is_err());
+        for f in [
+            Fault::BadSignatureShare,
+            Fault::BadProof,
+            Fault::Silent,
+            Fault::Equivocate,
+            Fault::BadDkgShare { victim: 2 },
+        ] {
+            assert_eq!(f.to_string().parse::<Fault>().unwrap(), f);
+        }
         assert_eq!("dkg".parse::<KeygenMode>().unwrap(), KeygenMode::Dkg);
         assert_eq!("dealer".parse::<KeygenMode>().unwrap(), KeygenMode::TrustedDealer);
         assert!("x".parse::<KeygenMode>().is_err());

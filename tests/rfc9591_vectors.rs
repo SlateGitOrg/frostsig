@@ -34,13 +34,11 @@ fn vectors_do_not_cross_verify_between_suites() {
     // The ristretto255 vector run under the Ed25519 suite must fail (or not
     // even decode): suites are domain separated.
     let v = RfcVector::parse(RISTRETTO255_VECTOR).unwrap();
-    match check_vector::<Ed25519Sha512>(&v) {
-        Ok(checks) => assert!(checks.iter().any(|c| !c.passed)),
-        Err(_) => {}
+    if let Ok(checks) = check_vector::<Ed25519Sha512>(&v) {
+        assert!(checks.iter().any(|c| !c.passed));
     }
     let v = RfcVector::parse(ED25519_VECTOR).unwrap();
-    match check_vector::<Ristretto255Sha512>(&v) {
-        Ok(checks) => assert!(checks.iter().any(|c| !c.passed)),
-        Err(_) => {}
+    if let Ok(checks) = check_vector::<Ristretto255Sha512>(&v) {
+        assert!(checks.iter().any(|c| !c.passed));
     }
 }
