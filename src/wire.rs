@@ -281,12 +281,11 @@ impl<C: Ciphersuite> Decode for PublicKeyPackage<C> {
         let min = r.u16()?;
         let n = r.count()?;
         let mut shares = BTreeMap::new();
+        let mut last = None;
         for _ in 0..n {
             let id = r.identifier()?;
-            let vs = VerifyingShare::new(r.element::<C>()?)?;
-            if shares.insert(id, vs).is_some() {
-                return Err(Error::DuplicateIdentifier(id));
-            }
+            check_ascending(&mut last, id)?;
+            shares.insert(id, VerifyingShare::new(r.element::<C>()?)?);
         }
         PublicKeyPackage::new(shares, vk, min)
     }
@@ -348,11 +347,11 @@ impl<C: Ciphersuite> Decode for SigningPackage<C> {
     fn decode(r: &mut Reader<'_>) -> Result<Self> {
         let n = r.count()?;
         let mut commitments = BTreeMap::new();
+        let mut last = None;
         for _ in 0..n {
             let id = r.identifier()?;
-            if commitments.insert(id, SigningCommitments::decode(r)?).is_some() {
-                return Err(Error::DuplicateIdentifier(id));
-            }
+            check_ascending(&mut last, id)?;
+            commitments.insert(id, SigningCommitments::decode(r)?);
         }
         Ok(SigningPackage::new(commitments, r.blob(MAX_MESSAGE_LEN)?))
     }
@@ -383,6 +382,18 @@ impl<C: Ciphersuite> Decode for Signature<C> {
         b.copy_from_slice(r.take(SIGNATURE_LEN)?);
         Signature::from_bytes(&b)
     }
+}
+
+/// Lists keyed by identifier must be strictly ascending, so every value has
+/// exactly one encoding (found by the mutation property test).
+fn check_ascending(last: &mut Option<Identifier>, id: Identifier) -> Result<()> {
+    match last {
+        Some(prev) if *prev == id => return Err(Error::DuplicateIdentifier(id)),
+        Some(prev) if *prev > id => return Err(Error::Decode("identifiers not in ascending order")),
+        _ => {}
+    }
+    *last = Some(id);
+    Ok(())
 }
 
 fn expect_suite<C: Ciphersuite>(found: u8) -> Result<()> {
@@ -653,6 +664,25 @@ mod tests {
         w.u32(u32::try_from(MAX_TEXT_LEN + 1).unwrap());
         let bytes = w.finish();
         assert_eq!(Reader::new(&bytes).blob(MAX_TEXT_LEN), Err(Error::Decode("length exceeds limit")));
+    }
+
+    #[test]
+    fn unsorted_identifier_lists_are_rejected() {
+        let mut rng = ChaCha20Rng::seed_from_u64(23);
+        let (shares, _) = trusted_dealer_keygen::<Ristretto255Sha512, _>(2, 2, &mut rng).unwrap();
+        let mut w = Writer::new();
+        w.count(2);
+        for i in [2u16, 1] {
+            let id = Identifier::try_from(i).unwrap();
+            let (_n, c) = commit::<Ristretto255Sha512, _>(&shares[&id].signing_share, &mut rng);
+            w.identifier(&id);
+            c.encode(&mut w);
+        }
+        w.blob(b"m");
+        assert_eq!(
+            SigningPackage::<Ristretto255Sha512>::from_bytes(&w.finish()),
+            Err(Error::Decode("identifiers not in ascending order"))
+        );
     }
 
     #[test]
