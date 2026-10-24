@@ -12,3 +12,4 @@ pub mod signature;
 pub mod signing;
 pub mod dkg;
 pub mod wire;
+pub mod vectors;
