@@ -10,3 +10,4 @@ pub mod keys;
 pub mod dealer;
 pub mod signature;
 pub mod signing;
+pub mod dkg;
