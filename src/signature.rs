@@ -129,11 +129,7 @@ mod tests {
         let sk = random_nonzero_scalar(&mut OsRng);
         let vk = VerifyingKey::<Ed25519Sha512>::new(Ed25519Sha512::base_mul(&sk)).unwrap();
         let sig = single_signer_sign::<Ed25519Sha512, _>(&sk, b"m", &mut OsRng).unwrap();
-        let ok = Ed25519Sha512::reference_verify(
-            &vk.serialize().unwrap(),
-            b"m",
-            &sig.to_bytes().unwrap(),
-        );
+        let ok = Ed25519Sha512::reference_verify(&vk.serialize().unwrap(), b"m", &sig.to_bytes().unwrap());
         assert_eq!(ok, Some(true));
         assert_eq!(Ristretto255Sha512::reference_verify(&[0; 32], b"m", &[0; 64]), None);
     }

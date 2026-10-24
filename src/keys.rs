@@ -168,16 +168,11 @@ impl<C: Ciphersuite> VssCommitment<C> {
         I: IntoIterator<Item = &'a VssCommitment<C>>,
     {
         let mut iter = commitments.into_iter();
-        let first = iter
-            .next()
-            .ok_or(Error::IncorrectCommitmentLength { expected: 1, got: 0 })?;
+        let first = iter.next().ok_or(Error::IncorrectCommitmentLength { expected: 1, got: 0 })?;
         let mut acc = first.elements.clone();
         for c in iter {
             if c.elements.len() != acc.len() {
-                return Err(Error::IncorrectCommitmentLength {
-                    expected: acc.len(),
-                    got: c.elements.len(),
-                });
+                return Err(Error::IncorrectCommitmentLength { expected: acc.len(), got: c.elements.len() });
             }
             for (a, e) in acc.iter_mut().zip(&c.elements) {
                 *a = *a + *e;
@@ -196,15 +191,9 @@ impl<C: Ciphersuite> VssCommitment<C> {
             .into_iter()
             .map(|id| Ok((id, VerifyingShare::new(self.evaluate(&id))?)))
             .collect::<Result<BTreeMap<_, _>>>()?;
-        let min_signers = u16::try_from(self.threshold()).map_err(|_| Error::InvalidThreshold {
-            min_signers: u16::MAX,
-            max_signers: u16::MAX,
-        })?;
-        PublicKeyPackage::new(
-            verifying_shares,
-            VerifyingKey::new(self.constant_term())?,
-            min_signers,
-        )
+        let min_signers = u16::try_from(self.threshold())
+            .map_err(|_| Error::InvalidThreshold { min_signers: u16::MAX, max_signers: u16::MAX })?;
+        PublicKeyPackage::new(verifying_shares, VerifyingKey::new(self.constant_term())?, min_signers)
     }
 }
 
@@ -226,8 +215,8 @@ impl<C: Ciphersuite> SecretShare<C> {
         if !self.commitment.verify_share(&self.identifier, &self.signing_share) {
             return Err(Error::InvalidSecretShare(self.identifier));
         }
-        let min_signers = u16::try_from(self.commitment.threshold())
-            .map_err(|_| Error::IncorrectCommitmentLength {
+        let min_signers =
+            u16::try_from(self.commitment.threshold()).map_err(|_| Error::IncorrectCommitmentLength {
                 expected: usize::from(u16::MAX),
                 got: self.commitment.threshold(),
             })?;
@@ -290,6 +279,10 @@ impl<C: Ciphersuite> KeyPackage<C> {
         self.min_signers
     }
 }
+
+/// Every participant's key package plus the shared group info: the output
+/// of an in-process key generation.
+pub type KeySet<C> = (BTreeMap<Identifier, KeyPackage<C>>, PublicKeyPackage<C>);
 
 /// The public "group info": the group key plus every participant's `PK_i`.
 /// The coordinator needs it to verify signature shares.

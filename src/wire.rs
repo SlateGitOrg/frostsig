@@ -17,7 +17,9 @@ use crate::ciphersuite::{deserialize_scalar, serialize_scalar, Ciphersuite};
 use crate::dkg::{ProofOfKnowledge, Round1Package, Round2Package};
 use crate::error::{Error, Result};
 use crate::identifier::Identifier;
-use crate::keys::{KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifyingKey, VerifyingShare, VssCommitment};
+use crate::keys::{
+    KeyPackage, PublicKeyPackage, SecretShare, SigningShare, VerifyingKey, VerifyingShare, VssCommitment,
+};
 use crate::signature::{Signature, SIGNATURE_LEN};
 use crate::signing::{SignatureShare, SigningCommitments, SigningPackage};
 
@@ -656,7 +658,10 @@ mod tests {
     #[test]
     fn signature_codec_round_trips() {
         let sig = Signature::<Ristretto255Sha512>::new(Ristretto255Sha512::generator(), Scalar::from(5u8));
-        assert_eq!(<Signature<Ristretto255Sha512> as Decode>::from_bytes(&Encode::to_bytes(&sig)).unwrap(), sig);
+        assert_eq!(
+            <Signature<Ristretto255Sha512> as Decode>::from_bytes(&Encode::to_bytes(&sig)).unwrap(),
+            sig
+        );
     }
 
     #[test]

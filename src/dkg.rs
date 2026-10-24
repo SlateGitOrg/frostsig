@@ -29,7 +29,7 @@ use crate::ciphersuite::{random_nonzero_scalar, Ciphersuite};
 use crate::dealer::validate_threshold;
 use crate::error::{Error, Result};
 use crate::identifier::Identifier;
-use crate::keys::{KeyPackage, PublicKeyPackage, SigningShare, VssCommitment};
+use crate::keys::{KeyPackage, KeySet, PublicKeyPackage, SigningShare, VssCommitment};
 use crate::polynomial::SecretPolynomial;
 
 /// Schnorr proof of knowledge of the constant term `a_i0` behind `C_i0`,
@@ -132,21 +132,13 @@ pub fn part1<C: Ciphersuite, R: RngCore + CryptoRng>(
     let secret = random_nonzero_scalar(rng);
     let polynomial = SecretPolynomial::random(secret, min_signers, rng);
     let commitment = polynomial.commit::<C>();
-    let proof =
-        ProofOfKnowledge::prove(&identifier, polynomial.secret(), &commitment.constant_term(), rng)?;
+    let proof = ProofOfKnowledge::prove(&identifier, polynomial.secret(), &commitment.constant_term(), rng)?;
     log::debug!("dkg part1: participant {identifier} committed to a degree-{} polynomial", min_signers - 1);
     let package = Round1Package { commitment: commitment.clone(), proof };
-    Ok((
-        Round1Secret { identifier, polynomial, commitment, min_signers, max_signers },
-        package,
-    ))
+    Ok((Round1Secret { identifier, polynomial, commitment, min_signers, max_signers }, package))
 }
 
-fn check_peer_set<T>(
-    me: &Identifier,
-    max_signers: u16,
-    packages: &BTreeMap<Identifier, T>,
-) -> Result<()> {
+fn check_peer_set<T>(me: &Identifier, max_signers: u16, packages: &BTreeMap<Identifier, T>) -> Result<()> {
     let expected = usize::from(max_signers) - 1;
     if packages.len() != expected {
         return Err(Error::IncorrectPackageCount { expected, got: packages.len() });
@@ -259,7 +251,7 @@ pub fn run_in_process<C: Ciphersuite, R: RngCore + CryptoRng>(
     min_signers: u16,
     max_signers: u16,
     rng: &mut R,
-) -> Result<(BTreeMap<Identifier, KeyPackage<C>>, PublicKeyPackage<C>)> {
+) -> Result<KeySet<C>> {
     let mut secrets1 = BTreeMap::new();
     let mut broadcasts = BTreeMap::new();
     for id in Identifier::range(max_signers) {
@@ -314,10 +306,7 @@ mod tests {
         }
     }
 
-    type Setup<C> = (
-        BTreeMap<Identifier, Round1Secret<C>>,
-        BTreeMap<Identifier, Round1Package<C>>,
-    );
+    type Setup<C> = (BTreeMap<Identifier, Round1Secret<C>>, BTreeMap<Identifier, Round1Package<C>>);
 
     fn round1<C: Ciphersuite>(t: u16, n: u16, seed: u64) -> Setup<C> {
         let mut rng = ChaCha20Rng::seed_from_u64(seed);
@@ -392,20 +381,14 @@ mod tests {
         let s2 = secrets.remove(&id(2)).unwrap();
         let mut only_one = without(&pkgs, id(2));
         only_one.remove(&id(1));
-        assert_eq!(
-            part2(s2, &only_one).unwrap_err(),
-            Error::IncorrectPackageCount { expected: 2, got: 1 }
-        );
+        assert_eq!(part2(s2, &only_one).unwrap_err(), Error::IncorrectPackageCount { expected: 2, got: 1 });
 
         // A commitment with the wrong threshold.
         let (_, other) = round1::<Ed25519Sha512>(3, 3, 16);
         let s3 = secrets.remove(&id(3)).unwrap();
         let mut mixed = without(&pkgs, id(3));
         mixed.insert(id(1), other[&id(1)].clone());
-        assert_eq!(
-            part2(s3, &mixed).unwrap_err(),
-            Error::IncorrectCommitmentLength { expected: 2, got: 3 }
-        );
+        assert_eq!(part2(s3, &mixed).unwrap_err(), Error::IncorrectCommitmentLength { expected: 2, got: 3 });
     }
 
     #[test]
@@ -417,10 +400,7 @@ mod tests {
         let mut inbox = BTreeMap::new();
         inbox.insert(id(2), Round2Package { share: SigningShare::new(Scalar::ONE) });
         inbox.insert(id(9), Round2Package { share: SigningShare::new(Scalar::ONE) });
-        assert_eq!(
-            part3(&s2, &without(&pkgs, me), &inbox).unwrap_err(),
-            Error::UnknownParticipant(id(9))
-        );
+        assert_eq!(part3(&s2, &without(&pkgs, me), &inbox).unwrap_err(), Error::UnknownParticipant(id(9)));
         assert_eq!(s2.identifier, me);
     }
 

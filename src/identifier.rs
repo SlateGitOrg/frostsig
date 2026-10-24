@@ -70,11 +70,7 @@ impl TryFrom<u16> for Identifier {
 impl Ord for Identifier {
     fn cmp(&self, other: &Self) -> Ordering {
         // Scalars are little-endian; compare from the most significant byte.
-        self.0
-            .as_bytes()
-            .iter()
-            .rev()
-            .cmp(other.0.as_bytes().iter().rev())
+        self.0.as_bytes().iter().rev().cmp(other.0.as_bytes().iter().rev())
     }
 }
 

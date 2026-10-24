@@ -15,10 +15,7 @@ use crate::keys::VssCommitment;
 /// `polynomial_evaluate(x, coeffs)` by Horner's method; `coeffs[0]` is the
 /// constant term. `O(len(coeffs))` field operations.
 pub fn evaluate(coefficients: &[Scalar], x: &Scalar) -> Scalar {
-    coefficients
-        .iter()
-        .rev()
-        .fold(Scalar::ZERO, |acc, c| acc * x + c)
+    coefficients.iter().rev().fold(Scalar::ZERO, |acc, c| acc * x + c)
 }
 
 /// `derive_interpolating_value(L, x_i)`: the Lagrange coefficient
@@ -115,9 +112,7 @@ impl SecretPolynomial {
 
     /// `vss_commit(coeffs)`: `[a_0 B, a_1 B, ..., a_{t-1} B]`.
     pub fn commit<C: Ciphersuite>(&self) -> VssCommitment<C> {
-        VssCommitment::from_elements_unchecked(
-            self.coefficients.iter().map(C::base_mul).collect(),
-        )
+        VssCommitment::from_elements_unchecked(self.coefficients.iter().map(C::base_mul).collect())
     }
 }
 
@@ -139,10 +134,7 @@ mod tests {
 
     #[test]
     fn interpolation_recovers_constant_term() {
-        let poly = SecretPolynomial::new(
-            Scalar::from(42u8),
-            vec![Scalar::from(7u8), Scalar::from(9u8)],
-        );
+        let poly = SecretPolynomial::new(Scalar::from(42u8), vec![Scalar::from(7u8), Scalar::from(9u8)]);
         let points: Vec<_> = [2u16, 5, 9].iter().map(|&i| (id(i), poly.evaluate(&id(i)))).collect();
         assert_eq!(interpolate_constant(&points).unwrap(), Scalar::from(42u8));
         // Too few points give a different (wrong) value, not an error.

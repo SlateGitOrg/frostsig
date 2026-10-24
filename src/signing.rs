@@ -31,10 +31,7 @@ pub fn nonce_generate_from_randomness<C: Ciphersuite>(
 }
 
 /// `nonce_generate(secret)` drawing 32 fresh bytes from `rng`.
-pub fn nonce_generate<C: Ciphersuite, R: RngCore + CryptoRng>(
-    secret: &SigningShare,
-    rng: &mut R,
-) -> Scalar {
+pub fn nonce_generate<C: Ciphersuite, R: RngCore + CryptoRng>(secret: &SigningShare, rng: &mut R) -> Scalar {
     let mut random_bytes = [0u8; 32];
     rng.fill_bytes(&mut random_bytes);
     let nonce = nonce_generate_from_randomness::<C>(secret, &random_bytes);
@@ -85,9 +82,7 @@ pub struct SigningNonces<C: Ciphersuite> {
 
 impl<C: Ciphersuite> core::fmt::Debug for SigningNonces<C> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("SigningNonces")
-            .field("commitments", &self.commitments)
-            .finish_non_exhaustive()
+        f.debug_struct("SigningNonces").field("commitments", &self.commitments).finish_non_exhaustive()
     }
 }
 
@@ -176,10 +171,7 @@ impl<C: Ciphersuite> SigningPackage<C> {
 
     fn require_threshold(&self, min_signers: u16) -> Result<()> {
         if self.commitments.len() < usize::from(min_signers) {
-            return Err(Error::NotEnoughSigners {
-                needed: min_signers,
-                got: self.commitments.len(),
-            });
+            return Err(Error::NotEnoughSigners { needed: min_signers, got: self.commitments.len() });
         }
         Ok(())
     }
@@ -483,10 +475,7 @@ mod tests {
             comms.insert(id, c);
         }
         let package = SigningPackage::new(comms, msg.to_vec());
-        let shares = nonces
-            .into_iter()
-            .map(|(id, n)| (id, sign(&package, n, &keys[&id]).unwrap()))
-            .collect();
+        let shares = nonces.into_iter().map(|(id, n)| (id, sign(&package, n, &keys[&id]).unwrap())).collect();
         (package, shares)
     }
 
@@ -499,8 +488,14 @@ mod tests {
         let sig2 = aggregate_with(&package, &shares, &public, ShareVerification::Always).unwrap();
         assert_eq!(sig, sig2);
         for (id, share) in &shares {
-            verify_signature_share(id, public.verifying_share(id).unwrap(), share, &package, public.verifying_key())
-                .unwrap();
+            verify_signature_share(
+                id,
+                public.verifying_share(id).unwrap(),
+                share,
+                &package,
+                public.verifying_key(),
+            )
+            .unwrap();
         }
     }
 
@@ -587,12 +582,24 @@ mod tests {
         let id = Identifier::try_from(2).unwrap();
         let bad = SignatureShare::new(shares[&id].to_scalar() + Scalar::ONE);
         assert_eq!(
-            verify_signature_share(&id, public.verifying_share(&id).unwrap(), &bad, &package, public.verifying_key()),
+            verify_signature_share(
+                &id,
+                public.verifying_share(&id).unwrap(),
+                &bad,
+                &package,
+                public.verifying_key()
+            ),
             Err(Error::InvalidSignatureShares { culprits: vec![id] })
         );
         let unknown = Identifier::try_from(9).unwrap();
         assert_eq!(
-            verify_signature_share(&unknown, public.verifying_share(&id).unwrap(), &bad, &package, public.verifying_key()),
+            verify_signature_share(
+                &unknown,
+                public.verifying_share(&id).unwrap(),
+                &bad,
+                &package,
+                public.verifying_key()
+            ),
             Err(Error::MissingSigner(unknown))
         );
     }
@@ -604,7 +611,8 @@ mod tests {
         let b = nonce_generate_from_randomness::<Ed25519Sha512>(&SigningShare::new(Scalar::from(2u8)), &r);
         assert_ne!(a, b, "same randomness, different secrets must give different nonces");
         let nonces =
-            SigningNonces::<Ed25519Sha512>::from_randomness(&SigningShare::new(Scalar::ONE), &r, &[1; 32]).unwrap();
+            SigningNonces::<Ed25519Sha512>::from_randomness(&SigningShare::new(Scalar::ONE), &r, &[1; 32])
+                .unwrap();
         let dbg = format!("{nonces:?}");
         assert!(dbg.starts_with("SigningNonces { commitments"));
         assert!(dbg.ends_with(".. }"));

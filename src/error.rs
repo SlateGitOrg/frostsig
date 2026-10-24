@@ -14,7 +14,9 @@ pub type Result<T> = core::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Error {
     /// `min_signers`/`max_signers` do not describe a usable threshold.
-    #[error("invalid threshold: min_signers={min_signers}, max_signers={max_signers} (need 2 <= min <= max)")]
+    #[error(
+        "invalid threshold: min_signers={min_signers}, max_signers={max_signers} (need 2 <= min <= max)"
+    )]
     InvalidThreshold {
         /// Requested threshold.
         min_signers: u16,
@@ -119,13 +121,13 @@ pub enum Error {
     /// A test-vector file was malformed or a vector check failed.
     #[error("test vector: {0}")]
     Vector(String),
+    /// A simulation or CLI configuration was rejected.
+    #[error("configuration: {0}")]
+    Config(String),
 }
 
 fn fmt_ids(ids: &[Identifier]) -> String {
-    ids.iter()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>()
-        .join(", ")
+    ids.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
 }
 
 #[cfg(test)]

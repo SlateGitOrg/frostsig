@@ -44,14 +44,9 @@ pub fn trusted_dealer_keygen<C: Ciphersuite, R: RngCore + CryptoRng>(
 ///
 /// Exposed so the RFC test vectors (which fix the polynomial) can be checked.
 /// `O(n * t)` field operations and `O(n * t)` point operations.
-pub fn split<C: Ciphersuite>(
-    polynomial: &SecretPolynomial,
-    max_signers: u16,
-) -> Result<DealerOutput<C>> {
-    let min_signers = u16::try_from(polynomial.len()).map_err(|_| Error::InvalidThreshold {
-        min_signers: u16::MAX,
-        max_signers,
-    })?;
+pub fn split<C: Ciphersuite>(polynomial: &SecretPolynomial, max_signers: u16) -> Result<DealerOutput<C>> {
+    let min_signers = u16::try_from(polynomial.len())
+        .map_err(|_| Error::InvalidThreshold { min_signers: u16::MAX, max_signers })?;
     validate_threshold(min_signers, max_signers)?;
     let commitment = polynomial.commit::<C>();
     let shares = Identifier::range(max_signers)
@@ -65,12 +60,7 @@ pub fn split<C: Ciphersuite>(
         })
         .collect();
     let public = commitment.derive_public_key_package(Identifier::range(max_signers))?;
-    log::debug!(
-        "dealer split a {}-of-{} secret for {}",
-        min_signers,
-        max_signers,
-        C::NAME
-    );
+    log::debug!("dealer split a {}-of-{} secret for {}", min_signers, max_signers, C::NAME);
     Ok((shares, public))
 }
 
@@ -81,8 +71,7 @@ pub fn reconstruct(min_signers: u16, shares: &[(Identifier, SigningShare)]) -> R
     if shares.len() < usize::from(min_signers) {
         return Err(Error::NotEnoughShares { needed: min_signers, got: shares.len() });
     }
-    let points: Vec<(Identifier, Scalar)> =
-        shares.iter().map(|(id, s)| (*id, s.to_scalar())).collect();
+    let points: Vec<(Identifier, Scalar)> = shares.iter().map(|(id, s)| (*id, s.to_scalar())).collect();
     interpolate_constant(&points)
 }
 
@@ -121,10 +110,7 @@ mod tests {
         let s2 = reconstruct(3, &collected[2..5]).unwrap();
         assert_eq!(s1, s2);
         assert_eq!(Ristretto255Sha512::base_mul(&s1), public.verifying_key().element());
-        assert_eq!(
-            reconstruct(3, &collected[0..2]),
-            Err(Error::NotEnoughShares { needed: 3, got: 2 })
-        );
+        assert_eq!(reconstruct(3, &collected[0..2]), Err(Error::NotEnoughShares { needed: 3, got: 2 }));
     }
 
     #[test]

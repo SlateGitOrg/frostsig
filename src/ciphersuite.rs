@@ -29,9 +29,7 @@ pub const ELEMENT_LEN: usize = 32;
 /// Implementors only provide the group-specific primitives; the hash
 /// functions that are identical across both curve25519 suites are provided
 /// methods.
-pub trait Ciphersuite:
-    Copy + Clone + Debug + Default + PartialEq + Eq + Send + Sync + 'static
-{
+pub trait Ciphersuite: Copy + Clone + Debug + Default + PartialEq + Eq + Send + Sync + 'static {
     /// Group element type.
     type Element: Copy
         + Clone
@@ -278,8 +276,7 @@ mod tests {
         let s = Scalar::from(123_456_789u64);
         assert_eq!(deserialize_scalar(&serialize_scalar(&s)).unwrap(), s);
         // L itself (little-endian) is not a canonical scalar.
-        let l = hex::decode("edd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010")
-            .unwrap();
+        let l = hex::decode("edd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010").unwrap();
         let l: [u8; 32] = l.try_into().unwrap();
         assert_eq!(deserialize_scalar(&l), Err(Error::MalformedScalar));
         assert_eq!(deserialize_scalar(&[0xff; 32]), Err(Error::MalformedScalar));
@@ -336,10 +333,7 @@ mod tests {
         let g = Ed25519Sha512::serialize_element(&Ed25519Sha512::generator()).unwrap();
         assert_eq!(Ed25519Sha512::deserialize_element(&g).unwrap(), Ed25519Sha512::generator());
         let g = Ristretto255Sha512::serialize_element(&Ristretto255Sha512::generator()).unwrap();
-        assert_eq!(
-            Ristretto255Sha512::deserialize_element(&g).unwrap(),
-            Ristretto255Sha512::generator()
-        );
+        assert_eq!(Ristretto255Sha512::deserialize_element(&g).unwrap(), Ristretto255Sha512::generator());
     }
 
     #[test]

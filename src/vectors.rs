@@ -189,7 +189,10 @@ pub fn check_vector<C: Ciphersuite>(vector: &RfcVector) -> Result<Vec<VectorChec
     for (i, expected) in &vector.participant_shares {
         let id = Identifier::try_from(*i)?;
         let got = shares.get(&id).map(|s| s.signing_share.to_scalar().to_bytes());
-        record(format!("P{i} participant_share"), got.as_ref().map(|g| g.as_slice()) == Some(expected.as_slice()));
+        record(
+            format!("P{i} participant_share"),
+            got.as_ref().map(|g| g.as_slice()) == Some(expected.as_slice()),
+        );
     }
 
     // secret_share_combine over the signing set recovers the group secret.
@@ -202,10 +205,7 @@ pub fn check_vector<C: Ciphersuite>(vector: &RfcVector) -> Result<Vec<VectorChec
             Ok((id, SigningShare::new(scalar("participant_share", share)?)))
         })
         .collect::<Result<Vec<_>>>()?;
-    record(
-        "secret_share_combine".into(),
-        reconstruct(vector.min_participants, &signer_shares)? == secret,
-    );
+    record("secret_share_combine".into(), reconstruct(vector.min_participants, &signer_shares)? == secret);
 
     // Round one: nonces from the published randomness, then commitments.
     let mut nonces = BTreeMap::new();
@@ -241,7 +241,10 @@ pub fn check_vector<C: Ciphersuite>(vector: &RfcVector) -> Result<Vec<VectorChec
         let i = id.to_u16().unwrap_or(0);
         let sv = &vector.signers[&i];
         record(format!("P{i} binding_factor_input"), *input == sv.binding_factor_input);
-        record(format!("P{i} binding_factor"), factors[id].to_bytes().as_slice() == sv.binding_factor.as_slice());
+        record(
+            format!("P{i} binding_factor"),
+            factors[id].to_bytes().as_slice() == sv.binding_factor.as_slice(),
+        );
     }
 
     // Round two: signature shares, each verified as the coordinator would.
@@ -250,7 +253,10 @@ pub fn check_vector<C: Ciphersuite>(vector: &RfcVector) -> Result<Vec<VectorChec
         let i = id.to_u16().unwrap_or(0);
         let key = shares.get(&id).ok_or(Error::UnknownParticipant(id))?.verify()?;
         let z = sign(&package, n, &key)?;
-        record(format!("P{i} sig_share"), z.serialize().as_slice() == vector.signers[&i].sig_share.as_slice());
+        record(
+            format!("P{i} sig_share"),
+            z.serialize().as_slice() == vector.signers[&i].sig_share.as_slice(),
+        );
         let vs = public.verifying_share(&id)?;
         record(
             format!("P{i} verify_signature_share"),
@@ -263,10 +269,7 @@ pub fn check_vector<C: Ciphersuite>(vector: &RfcVector) -> Result<Vec<VectorChec
     let signature: Signature<C> = aggregate(&package, &sig_shares, &public)?;
     let sig_bytes = signature.to_bytes()?;
     record("aggregate sig".into(), sig_bytes.as_slice() == vector.signature.as_slice());
-    record(
-        "verify (frostsig)".into(),
-        public.verifying_key().verify(&vector.message, &signature).is_ok(),
-    );
+    record("verify (frostsig)".into(), public.verifying_key().verify(&vector.message, &signature).is_ok());
     let pk = public.verifying_key().serialize()?;
     if let Some(ok) = C::reference_verify(&pk, &vector.message, &sig_bytes) {
         record("verify (ed25519-dalek, strict)".into(), ok);
