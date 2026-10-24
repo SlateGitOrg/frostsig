@@ -8,3 +8,5 @@ pub mod compat;
 pub mod polynomial;
 pub mod keys;
 pub mod dealer;
+pub mod signature;
+pub mod signing;
