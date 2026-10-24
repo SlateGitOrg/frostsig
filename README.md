@@ -254,7 +254,7 @@ make test
 - 1 doctest.
 
 **Coverage.** `make coverage` (`cargo llvm-cov --all-targets --fail-under-lines 80`)
-reports **95.8% line coverage** (3,215 lines, 136 missed) over the library and the CLI.
+reports **95.8% line coverage** (3,225 lines, 136 missed) over the library and the CLI.
 The least-covered file is `sim/participant.rs` at 72%, where the uncovered lines are
 timeout and malformed-message paths.
 
