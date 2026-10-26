@@ -1,5 +1,7 @@
 # frostsig
 
+[![CI](https://github.com/SlateGitOrg/frostsig/actions/workflows/ci.yml/badge.svg)](https://github.com/SlateGitOrg/frostsig/actions/workflows/ci.yml)
+
 FROST threshold Schnorr signatures, as specified in RFC 9591, over Ed25519 and
 ristretto255, written in Rust on top of `curve25519-dalek`. It covers trusted-dealer
 and distributed key generation, two-round signing with nonce commitments, aggregation,
@@ -12,20 +14,20 @@ ordinary Ed25519 signature that any RFC 8032 verifier accepts.
 > side-channel guarantees beyond those of `curve25519-dalek`. Do not use it to protect
 > real assets. See [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md).
 
-## What it does and who it's for
+## Why
 
 A threshold signature lets any `t` of `n` key holders sign together, while fewer than
 `t` learn nothing and cannot sign. FROST needs only two rounds and outputs a plain Schnorr
 signature, so verifiers cannot tell that a threshold was involved. That makes it useful
 for wallet custody, release signing, and certificate authorities.
 
-frostsig is for engineers and students who want to see the whole protocol working: every
+frostsig is for engineers who want to see the whole protocol working: every
 RFC 9591 function maps to a named Rust function (see
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)), and every published intermediate value
 is recomputed from the RFC's own test vectors. A thread-per-participant simulator shows
 what happens when someone misbehaves.
 
-**Features**
+## Features
 
 - Two RFC 9591 ciphersuites: `FROST(Ed25519, SHA-512)` and `FROST(ristretto255, SHA-512)`.
 - Key generation:
@@ -74,9 +76,9 @@ flowchart LR
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) covers each module, its RFC section, the
 signing sequence diagram, validation rules, and the complexity of every phase.
 
-## Quickstart
+## Quick start
 
-Requires a stable Rust toolchain. `make check` also needs `cargo-llvm-cov`.
+Requires a stable Rust toolchain (CI uses current stable). `make check` also needs `cargo-llvm-cov`.
 
 ```sh
 make check          # fmt + clippy -D warnings + rustdoc -D warnings + tests + coverage >= 80%
@@ -130,7 +132,7 @@ The same example runs as a doctest in `src/lib.rs`.
 Fault kinds: `bad-share`, `silent`, `bad-proof`, `bad-dkg-share:<victim>`, `equivocate`.
 Set `RUST_LOG=debug` to trace each protocol step.
 
-## Demo output
+## Usage example
 
 Excerpt from `make demo` on a real run (seeded, so it reproduces exactly; step 1's 47
 vector lines are shortened here):
@@ -232,7 +234,7 @@ main ones:
 - **The DKG follows the FROST paper**, with proofs of knowledge bound to the
   participant's identifier, so a replayed proof fails. RFC 9591 does not specify a DKG.
 
-## Tests, coverage, benchmarks
+## Testing
 
 All numbers below were produced by the commands shown next to them.
 
@@ -316,7 +318,7 @@ and benches (both counts include comments and blank lines).
 - A networked transport (TCP with mutual TLS) behind the same `Endpoint` interface.
 - Cross-implementation tests against the Zcash Foundation `frost-ed25519` crate.
 
-## Repository layout
+## Project layout
 
 ```
 src/            library (ciphersuite, keys, dealer, dkg, signing, wire, sim, ...) + CLI (main.rs)
@@ -328,10 +330,9 @@ docs/           ARCHITECTURE.md, THREAT_MODEL.md
 ```
 
 CI (`.github/workflows/ci.yml`) runs `make check`, `make demo`, and a check that the
-bundled vectors still match the published RFC text. The workflow has not been executed
-yet because the repository has not been pushed.
+bundled vectors still match the published RFC text.
 
 ## License
 
-MIT. See [LICENSE](LICENSE). The RFC 9591 test-vector excerpts are © IETF Trust (see
+MIT — see [LICENSE](LICENSE). The RFC 9591 test-vector excerpts are © IETF Trust (see
 [DATA.md](DATA.md)).
